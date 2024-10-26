@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Voice Assistant</h1>
+        <button onclick="startVoiceRecognition()">Start Listening</button>
+        <p id="transcript"></p>
+        <div class="output">
+            <h3>Response:</h3>
+            <p id="response"></p>
+        </div>
+    </div>
+
+    <script>
+        const transcriptElement = document.getElementById('transcript');
+        const responseElement = document.getElementById('response');
+
+        function startVoiceRecognition() {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                transcriptElement.innerHTML = 'You said: ' + transcript;
+
+                // Send the voice input to Django backend
+                sendVoiceCommand(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                transcriptElement.innerHTML = 'Error occurred: ' + event.error;
+            };
+        }
+
+        function sendVoiceCommand(userInput) {
+            const csrfToken = getCsrfToken();
+
+            fetch('/assistant/voice-command/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken
+                },
+                body: `user_input=${encodeURIComponent(userInput)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                responseElement.innerHTML = data.response;
+            })
+            .catch(error => {
+                responseElement.innerHTML = 'Error: ' + error;
+            });
+        }
+
+        function getCsrfToken() {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith('csrftoken=')) {
+                    return cookie.substring('csrftoken='.length, cookie.length);
+                }
+            }
+            return '';
+        }
+    </script>
+</body>
+</html>

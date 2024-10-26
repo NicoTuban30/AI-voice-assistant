@@ -1,0 +1,10 @@
+[
+    {
+        "input": "Hello!",
+        "response": "Hi there! How can I help you?"
+    },
+    {
+        "input": "Can you tell me a joke?",
+        "response": "Why did the scarecrow win an award? Because he was outstanding in his field!"
+    }
+]

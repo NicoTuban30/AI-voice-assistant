@@ -1,60 +1,33 @@
-# This is an example Dockerfile that builds a minimal container for running LK Agents
-# syntax=docker/dockerfile:1
-ARG PYTHON_VERSION=3.11.6
-FROM python:${PYTHON_VERSION}-slim
+# Use a lightweight Linux-based Python image
+FROM python:3.9-slim
 
-# Prevents Python from writing pyc files.
-ENV PYTHONDONTWRITEBYTECODE=1
+# Set the working directory
+WORKDIR /app
 
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
-ENV PYTHONUNBUFFERED=1
-
-# Create a non-privileged user that the app will run under.
-# See https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#user
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/home/appuser" \
-    --shell "/sbin/nologin" \
-    --uid "${UID}" \
-    appuser
-
-
-# Install gcc and other build dependencies.
-RUN apt-get update && \
-    apt-get install -y \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
     gcc \
-    python3-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user and switch to it
+RUN useradd -m -d /home/appuser -s /bin/bash appuser
+
+# Ensure the app directory is owned by the non-root user
+RUN mkdir -p /app && chown -R appuser:appuser /app
+
+# Switch to the non-root user
 USER appuser
 
-RUN mkdir -p /home/appuser/.cache
-RUN chown -R appuser /home/appuser/.cache
+# Copy and install Python dependencies
+COPY --chown=appuser:appuser requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-WORKDIR /home/appuser
+# Copy the entire project
+COPY --chown=appuser:appuser . .
 
-COPY requirements.txt .
-RUN python -m pip install --user --no-cache-dir -r requirements.txt
+# Expose the application port
+EXPOSE 8000
 
-COPY . .
-
-# Accept build arguments for environment variables
-ARG OPENAI_API_KEY
-ARG BUBBLE_TRANSCRIPT_ENDPOINT
-ARG BUBBLE_GET_TRANSCRIPT_ENDPOINT
-ARG BUBBLE_STORY_ENDPOINT
-
-# Set environment variables
-ENV OPENAI_API_KEY=$OPENAI_API_KEY
-ENV BUBBLE_TRANSCRIPT_ENDPOINT=$BUBBLE_TRANSCRIPT_ENDPOINT
-ENV BUBBLE_GET_TRANSCRIPT_ENDPOINT=$BUBBLE_GET_TRANSCRIPT_ENDPOINT
-ENV BUBBLE_STORY_ENDPOINT=$BUBBLE_STORY_ENDPOINT
-
-# ensure that any dependent models are downloaded at build-time
-RUN python agent.py download-files
-
-# Run the application.
-CMD ["python", "agent.py", "start"]
+# Set the default command
+CMD ["python", "app.py"]

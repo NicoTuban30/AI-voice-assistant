@@ -1,23 +1,36 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  lk-agent:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        PYTHON_VERSION: 3.11.6
-        OPENAI_API_KEY: ${OPENAI_API_KEY}
-        BUBBLE_TRANSCRIPT_ENDPOINT: ${BUBBLE_TRANSCRIPT_ENDPOINT}
-        BUBBLE_GET_TRANSCRIPT_ENDPOINT: ${BUBBLE_GET_TRANSCRIPT_ENDPOINT}
-        BUBBLE_STORY_ENDPOINT: ${BUBBLE_STORY_ENDPOINT}
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - BUBBLE_TRANSCRIPT_ENDPOINT=${BUBBLE_TRANSCRIPT_ENDPOINT}
-      - BUBBLE_GET_TRANSCRIPT_ENDPOINT=${BUBBLE_GET_TRANSCRIPT_ENDPOINT}
-      - BUBBLE_STORY_ENDPOINT=${BUBBLE_STORY_ENDPOINT}
-    volumes:
-      - .:/home/appuser
+  app:
+    build: .
+    container_name: python_app
+    restart: always
+    user: "1000:1000"  # Ensures the container runs as a non-root user
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app  # Mounts the local directory for development
+      - app_data:/app/data  # Persistent storage for logs/uploads
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://myuser:mypassword@db:5432/mydatabase
+    depends_on:
+      - db
+    command: ["python", "app.py", "start"]
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
     restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # Persistent database storage
+
+volumes:
+  pgdata:
+  app_data:

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import json
-from dotenv import load_dotenv
+
+# from dotenv import load_dotenv
 
 from livekit import rtc
 from livekit.agents import (
@@ -27,7 +28,7 @@ import requests
 import aiohttp
 
 
-load_dotenv(dotenv_path=".env")
+load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 POST_TRANSCRIP_URL = os.getenv("BUBBLE_TRANSCRIPT_ENDPOINT")
 GET_TRANSCRIPT_URL = os.getenv("BUBBLE_GET_TRANSCRIPT_ENDPOINT")
